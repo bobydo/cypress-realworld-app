@@ -1,3 +1,63 @@
+## Cypress Test Architecture: Purpose-First vs Business-Domain-First
+
+There are two common ways to organize a Cypress test suite. This project uses **purpose-first**;
+many tutorials/examples (and Page-Object-Model setups) default to **business-domain-first**.
+
+### Business-domain-first (not what this repo does)
+
+Organize by feature/domain, with one flat `e2e/` folder and a Page Object per page:
+
+```
+cypress/
+├── e2e/
+│   ├── authentication/
+│   │   ├── login.cy.ts
+│   │   ├── logout.cy.ts
+│   │   └── forgotPassword.cy.ts
+│   ├── accounts/
+│   │   ├── createAccount.cy.ts
+│   │   ├── transferMoney.cy.ts
+│   │   └── closeAccount.cy.ts
+│   └── payments/
+│       ├── payBill.cy.ts
+│       └── scheduledPayment.cy.ts
+└── support/
+    └── pageObjects/
+        ├── LoginPage.ts
+        └── DashboardPage.ts
+```
+
+### Purpose-first (what this repo does)
+
+Organize by test *type* first, business domain shows up only as filenames within each folder:
+
+```
+cypress/
+└── tests/
+    ├── ui/                  # auth.spec.ts, bankaccounts.spec.ts, new-transaction.spec.ts, ...
+    ├── api/                 # cy.request() only, no browser
+    ├── ui-auth-providers/   # auth0.spec.ts, cognito.spec.ts, google.spec.ts, okta.spec.ts
+    └── demo/                # cypress-studio.spec.ts
+```
+
+### Why purpose-first is the better fit here
+
+- **CI parallelization** — `.circleci/config.yml` runs `ui`, `api`, and browser-matrix jobs as
+  separate parallel pipelines; that split is trivial because the folders already separate by type.
+- **Conditional execution** — `yarn test:api` skips the browser entirely; `ui-auth-providers/`
+  can be skipped wholesale without Auth0/Okta/Cognito credentials. A domain-first layout would
+  force grepping through mixed-type files to get the same filtering.
+- **Different runtime/risk profile per type** — API specs are fast and deterministic, UI specs
+  are slower and flakier, Single Sign-On specs need live third-party credentials. Grouping by how
+  expensive/risky a test is to run matters more operationally than grouping by business feature.
+
+Business-domain-first still wins when a team is organized around feature ownership and the
+common question is "show me everything related to payments" — that's one folder there, versus a
+grep across `ui/` + `api/` here. For a single reference app driving CI parallelization, purpose-first
+is the right call.
+
+---
+
 <p align="center">
   <!-- We use two SVGs here so that this displays correctly
     on Github. This might not look right in other Markdown previewers. -->
