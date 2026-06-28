@@ -74,6 +74,19 @@
       "balance": 49474,
       "createdAt": "2023-12-07T04:39:38.383Z",
       "modifiedAt": "2024-03-07T00:07:36.510Z"
+    },
+    {
+      "id": "qzvY1JskH",
+      "uuid": "87042475-a5de-4033-8e0e-4950e1f41423",
+      "firstName": "Shenyi",
+      "lastName": "Bao",
+      "username": "baoshenyi",
+      "password": "$2a$10$6LxsAkSWKiD4SntFS9lSiOfIO.8uLc7DzNWBIzYcrVjOYD95ReU1C",
+      "email": "baoshenyi@gmail.com",
+      "phoneNumber": "7808938686",
+      "balance": 0,
+      "createdAt": "2026-06-28T02:14:58.088Z",
+      "modifiedAt": "2026-06-28T02:14:58.088Z"
     }
   ],
   "contacts": [
@@ -253,6 +266,17 @@
       "isDeleted": false,
       "createdAt": "2024-01-26T14:01:01.815Z",
       "modifiedAt": "2024-03-07T08:44:31.174Z"
+    },
+    {
+      "id": "AxHIigonb",
+      "uuid": "3f609618-3a06-4461-9021-a0d917aa6490",
+      "userId": "qzvY1JskH",
+      "bankName": "Test Bank",
+      "accountNumber": "1234567890",
+      "routingNumber": "987654321",
+      "isDeleted": false,
+      "createdAt": "2026-06-28T02:20:40.395Z",
+      "modifiedAt": "2026-06-28T02:20:40.395Z"
     }
   ],
   "transactions": [
@@ -10986,4 +11010,3 @@
     }
   ]
 }
-
