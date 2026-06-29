@@ -93,3 +93,63 @@ based Auth0 login in
 see the `cy.origin()` write-up in [Improvement.md](Improvement.md) for why cross-origin
 UI automation needed that API in the first place. Programmatic login (this doc) is the
 strategy for *avoiding* needing `cy.origin()` for the bulk of the suite.
+
+### Keycloak OpenID Connect Discovery document
+
+This is the standard Keycloak OpenID Connect Discovery document.
+
+The URL being called is:
+
+```
+GET http://localhost:8080/realms/demo/.well-known/openid-configuration
+```
+
+It returns all the important OAuth/OpenID endpoints.
+
+**Extracted URLs**
+
+- **Issuer**
+
+  ```
+  http://localhost:8080/realms/demo
+  ```
+
+- **Authorization endpoint (browser login)**
+
+  ```
+  http://localhost:8080/realms/demo/protocol/openid-connect/auth
+  ```
+
+  This is where the browser is redirected for the login page.
+
+- **Token endpoint (programmatic login) ⭐**
+
+  ```
+  http://localhost:8080/realms/demo/protocol/openid-connect/token
+  ```
+
+  This is the endpoint Cypress would call with `cy.request()` to obtain a JWT.
+
+  Example:
+
+  ```ts
+  cy.request({
+    method: "POST",
+    url: "http://localhost:8080/realms/demo/protocol/openid-connect/token",
+    form: true,
+    body: {
+      client_id: "my-app",
+      username: "qa_automation",
+      password: "Password123!",
+      grant_type: "password",
+    },
+  });
+  ```
+
+- **Token introspection**
+
+  ```
+  http://localhost:8080/realms/demo/protocol/openid-connect/token/introspect
+  ```
+
+  ![alt text](image-1.png)
