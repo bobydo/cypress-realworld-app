@@ -19,7 +19,7 @@ try {
 } catch (e) {}
 
 export default defineConfig({
-  projectId: "7s5okt",
+  projectId: "vm4dtu",
   retries: {
     runMode: 2, //reduce failures in CI due to network flakiness
   },
