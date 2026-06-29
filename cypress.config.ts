@@ -21,7 +21,7 @@ try {
 export default defineConfig({
   projectId: "7s5okt",
   retries: {
-    runMode: 2,
+    runMode: 2, //reduce failures in CI due to network flakiness
   },
   env: {
     defaultPassword: process.env.SEED_DEFAULT_USER_PASSWORD,
@@ -71,8 +71,8 @@ export default defineConfig({
     supportFile: "cypress/support/e2e.ts",
     viewportHeight: 1000,
     viewportWidth: 1280,
-    experimentalRunAllSpecs: true,
-    experimentalStudio: true,
+    experimentalRunAllSpecs: true, //✅ Run All Specs on interface
+    experimentalStudio: true, //✅ Enable Studio
     setupNodeEvents(on, config) {
       const testDataApiEndpoint = `${config.expose.apiUrl}/testData`;
 
