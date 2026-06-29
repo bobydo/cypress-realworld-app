@@ -2,6 +2,7 @@
 
 ## Save test results to cloud
 npx cypress run --component --record --key <key>
+![alt text](image.png)
 
 ## Cross-origin testing: `cy.origin()`
 
