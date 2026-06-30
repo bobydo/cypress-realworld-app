@@ -55,3 +55,5 @@ component: {
    *and* its rough edges — selector quality, recording artifacts) lets you give a
    grounded comparison against Playwright codegen instead of a memorized table — see the
    corrected comparison and Studio rollout history (`removed → reinstated 10.7.0 
+
+![alt text](image-2.png)
