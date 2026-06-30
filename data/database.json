@@ -206,7 +206,7 @@
       "bankName": "Waters, King and O'Reilly Bank",
       "accountNumber": "7774132232",
       "routingNumber": "996645387",
-      "isDeleted": false,
+      "isDeleted": true,
       "createdAt": "2023-03-28T21:55:07.857Z",
       "modifiedAt": "2024-03-07T20:50:34.541Z"
     },

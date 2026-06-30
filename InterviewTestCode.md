@@ -1,25 +1,5 @@
 # Cypress Interview Prep — Reading List
 
-## For your Cypress interview
-
-Since you're practicing with the Cypress Real World App, I suggest we simulate how a QA
-engineer would work:
-
-- **Step 1:** You receive a new feature (e.g., "Create Bank Account").
-- **Step 2:** We'll search the existing test suite for similar examples.
-- **Step 3:** We'll copy the closest test.
-- **Step 4:** I'll explain every line you keep, modify, or remove.
-
-This mirrors how automation engineers work on real projects and is excellent interview
-preparation.
-
-**This repo's Cypress version:** 15.17.0 (see [Improvement.md](Improvement.md)).
-
-> Note: Cypress Studio (record-a-test) is **not** removed in current Cypress — it was
-> dropped briefly in 10.0, reinstated in 10.7.0, and now ships **on by default** as of
-> 15.4.0 (still Beta). Manual coding + copying existing tests remains the dominant
-> real-world workflow regardless, which is why we're using that approach here.
-
 ## empty-seed.json vs database.json
 
 There's no separate "real db" being skipped — this app's entire database **is** a JSON
