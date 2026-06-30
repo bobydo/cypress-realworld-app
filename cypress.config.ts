@@ -68,11 +68,13 @@ export default defineConfig({
   e2e: {
     baseUrl: "http://localhost:3000",
     specPattern: "cypress/tests/**/*.spec.{js,jsx,ts,tsx}",
-    supportFile: "cypress/support/e2e.ts",
+    // Exclude the practice spec from the test run
+    excludeSpecPattern: ["**/bankaccounts-practice.spec.ts"], 
     viewportHeight: 1000,
     viewportWidth: 1280,
-    experimentalRunAllSpecs: true, //✅ Run All Specs on interface
-    experimentalStudio: true, //✅ Enable Studio
+    experimentalRunAllSpecs: true, //✅ Run All Specs on interface recording
+    // setupNodeEvents runs in the Node process, 
+    // so we can use Node modules like fs, path, etc.
     setupNodeEvents(on, config) {
       const testDataApiEndpoint = `${config.expose.apiUrl}/testData`;
 
