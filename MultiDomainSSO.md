@@ -152,4 +152,4 @@ It returns all the important OAuth/OpenID endpoints.
   http://localhost:8080/realms/demo/protocol/openid-connect/token/introspect
   ```
 
-  ![alt text](image-1.png)
+  ![alt text](docs/image-1.png)

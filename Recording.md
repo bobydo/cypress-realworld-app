@@ -56,4 +56,4 @@ component: {
    grounded comparison against Playwright codegen instead of a memorized table — see the
    corrected comparison and Studio rollout history (`removed → reinstated 10.7.0 
 
-![alt text](image-2.png)
+![alt text](docs/image-2.png)
