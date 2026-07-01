@@ -33,3 +33,4 @@ Suggested order: 1 → 2 (auth/session basics) → 3 → 4 (CRUD form pattern) �
 files together) → 8 (data-driven pattern) → 7 (responsive testing) → 6 (most complex,
 save for last). Roughly 15-20 min each including rereading `commands.ts` for unfamiliar
 custom commands — fits a 2-3 hour block comfortably.
+

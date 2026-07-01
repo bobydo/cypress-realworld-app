@@ -199,6 +199,7 @@ export const createUser = (userDetails: Partial<User>): User => {
 
 const saveUser = (user: User) => {
   db.get(USER_TABLE).push(user).write();
+  db.get(USER_TABLE).find({ id: user.id }).value();
 };
 
 export const updateUserById = (userId: string, edits: Partial<User>) => {
@@ -338,6 +339,10 @@ export const getTransactionByIdForApi = (id: string) =>
 export const getTransactionsForUserForApi = (userId: string, query?: object) =>
   flow(getTransactionsForUserByObj(userId), formatTransactionsForApiResponse)(query);
 
+// const getTransactions = getTransactionsForUserByObj(userId);
+// const transactions = getTransactions(query);
+// const response = formatTransactionsForApiResponse(transactions);
+// return response;
 export const getFullNameForUser = (userId: User["id"]) => flow(getUserById, formatFullName)(userId);
 
 export const formatTransactionForApiResponse = (

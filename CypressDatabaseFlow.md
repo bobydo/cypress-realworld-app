@@ -39,6 +39,7 @@ res.sendStatus(200) → HTTP response → axios.post(...) resolves → cy.task("
 >
 > const db = low(adapter);
 > const saveUser = (user: User) => {
+>   // Lodash is to JavaScript what LINQ is to C#
 >   db.get(USER_TABLE).push(user).write();
 > };
 > ```
