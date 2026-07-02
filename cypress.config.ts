@@ -69,7 +69,7 @@ export default defineConfig({
     baseUrl: "http://localhost:3000",
     specPattern: "cypress/tests/**/*.spec.{js,jsx,ts,tsx}",
     // Exclude the practice spec from the test run
-    excludeSpecPattern: ["**/bankaccounts-practice.spec.ts"], 
+    excludeSpecPattern: ["**/bankaccounts-practice.spec.ts", "**/performance/**"], 
     viewportHeight: 1000,
     viewportWidth: 1280,
     experimentalRunAllSpecs: true, //✅ Run All Specs on interface recording

@@ -5,6 +5,7 @@
 
 # testing
 /coverage
+cypress/tests/performance/k6-results*.json
 
 # production
 /build

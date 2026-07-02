@@ -47,6 +47,134 @@ Cypress.Commands.add("loginByApi", (username, password) => {
 **Result:** In dev and CI, we used a dedicated Keycloak test account that was whitelisted to bypass MFA and CAPTCHA from Microsoft/Azure AD — so automated tests could run the full login flow without hitting those blocks. On UAT, we relied on manual integration testing with real SSO, MFA, and CAPTCHA, which is where a human tester validates the complete identity flow before production. This split kept automation fast and reliable in CI, while still ensuring the real-world login experience was verified by a human at the right stage.
 
 
+## Performance Testing — k6
+
+**Tool:** [k6](https://k6.io) (open-source, scripts in JavaScript, CI/CD friendly)
+
+**Where Cypress stops:** Cypress runs one virtual user in a real browser. It can't simulate 500 concurrent users hitting an API endpoint.
+
+**What k6 does:**
+```js
+// load-test.js
+import http from "k6/http";
+import { check } from "k6";
+
+export const options = {
+  vus: 100,        // 100 virtual users
+  duration: "30s", // for 30 seconds
+};
+
+export default function () {
+  const res = http.get("http://localhost:3001/transactions");
+  check(res, {
+    "status is 200": (r) => r.status === 200,
+    "response < 500ms": (r) => r.timings.duration < 500,
+  });
+}
+```
+
+Run: `k6 run load-test.js`
+
+**Interview answer (30 seconds):**
+> Cypress is great for functional E2E but it's not designed for load testing — it runs one browser session at a time. For performance testing I'd use k6, which can simulate hundreds of concurrent users with scripts written in JavaScript. I'd add it to the CI pipeline to catch performance regressions on critical API endpoints, for example asserting that the transactions endpoint responds in under 500ms under load.
+
+**How it fits alongside Cypress in CI/CD:**
+```
+Cypress (functional)  +  k6 (performance)  →  same CI pipeline
+        ▼                       ▼
+   Did it work?          Was it fast enough?
+```
+
+---
+
+## Security Testing — OWASP ZAP
+
+**Tool:** [OWASP ZAP](https://www.zaproxy.org) (free, open-source DAST scanner, industry standard)
+
+**Where Cypress stops:** Cypress can assert a response header exists (`cy.request()` → check `X-Frame-Options`), but it can't automatically scan for XSS, SQL injection, broken auth, or OWASP Top 10 vulnerabilities.
+
+**What OWASP ZAP does (DAST — Dynamic Application Security Testing):**
+```
+ZAP Proxy sits between the test runner and your app,
+passively observing traffic and actively probing for vulnerabilities.
+
+Cypress / browser → ZAP Proxy → Your App
+                        │
+                  Scans for:
+                  - XSS injection points
+                  - Missing security headers
+                  - Broken authentication
+                  - Sensitive data exposure
+```
+
+**Typical CI/CD integration (ZAP baseline scan):**
+```bash
+docker run -t owasp/zap2docker-stable zap-baseline.py \
+  -t http://localhost:3000 \
+  -r zap-report.html
+```
+
+**Interview answer (30 seconds):**
+> Cypress isn't a security testing tool — it can verify a `Content-Security-Policy` header is present, but it can't find XSS or injection vulnerabilities. For security I'd use OWASP ZAP, which is a DAST scanner that proxies between the test runner and the app, actively probing for OWASP Top 10 vulnerabilities. I'd run a ZAP baseline scan in CI on every PR targeting a test environment, and flag any new findings as a build warning or failure depending on severity.
+
+---
+
+## CORS does not affect k6
+
+This project defines CORS in [backend/app.ts:31-34](backend/app.ts#L31-L34):
+```js
+const corsOption = {
+  origin: `http://localhost:${frontendPort}`, // only requests from localhost:3000 allowed
+  credentials: true,
+};
+```
+Applied to every request at [backend/app.ts:53](backend/app.ts#L53):
+```js
+app.use(cors(corsOption));
+```
+
+CORS is a **browser security feature only** — k6 makes plain HTTP requests with no browser involved, so the server's CORS headers are irrelevant to k6.
+
+**Browser request (CORS enforced):**
+```http
+GET /testData/transactions HTTP/1.1
+Host: api.uat.example.com
+Origin: https://app.uat.example.com        ← browser adds this automatically
+Referer: https://app.uat.example.com/
+Accept: application/json
+```
+Server responds with:
+```http
+HTTP/1.1 200 OK
+Access-Control-Allow-Origin: https://app.uat.example.com
+```
+If `Access-Control-Allow-Origin` is missing or wrong → **browser blocks the response** before JavaScript can read it.
+
+**k6 request (no CORS):**
+```http
+GET /testData/transactions HTTP/1.1
+Host: api.uat.example.com
+Accept: */*                                ← no Origin header, k6 is not a browser
+```
+Server responds → **k6 reads the response directly**, no CORS check ever happens.
+
+**How k6 is invoked locally** ([package.json](package.json)):
+```json
+"test:performance": "node scripts/run-performance.js"
+```
+[scripts/run-performance.js](scripts/run-performance.js) generates a timestamp and runs:
+```bash
+k6 run cypress/tests/performance/load-test.spec.ts \
+  --compatibility-mode=extended \
+  --out json=cypress/tests/performance/k6-results-2026-07-02_14-35-22.json
+```
+k6 is a plain Node/Go process — no browser launched, no `Origin` header, CORS never involved.
+
+**Interview answer (30 seconds):**
+> CORS is enforced by the browser, not the server. k6 is a Go process making raw HTTP requests — it never sends an `Origin` header and never checks `Access-Control-Allow-Origin`. So CORS policies have zero effect on k6 load tests, the same way they have no effect on curl or Postman. What *can* block k6 on UAT is authentication (no valid token) or a firewall restricting traffic to the UAT network.
+
+---
+
 ## White-box vs Black-box — a real example from this codebase
 
 [backend/database.ts:339-340](backend/database.ts#L339-L340):

@@ -1,34 +1,100 @@
 name: Cypress Tests
 on: [push]
+
 jobs:
-  cypress-run:
+  # ─── Stage 1: Smoke (fast check, ~5 min) ───────────────────────────────────
+  smoke:
     runs-on: ubuntu-latest
-    # Runs tests in parallel with matrix strategy https://on.cypress.io/parallelization
-    # https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/run-job-variations
-    # Also see warning here https://github.com/cypress-io/github-action#parallel
-    strategy:
-      fail-fast: false # https://github.com/cypress-io/github-action/issues/48
-      matrix:
-        containers: [1, 2] # Uses 2 parallel instances
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Cypress run
+      - uses: actions/checkout@v6
+      - name: Smoke Tests
+        uses: cypress-io/github-action@v7
+        with:
+          start: npm start
+          wait-on: "http://localhost:3000"
+          spec: "cypress/tests/ui/auth.spec.ts,cypress/tests/ui/bankaccounts.spec.ts"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─── Stage 2: Full Regression (UI + API) ──────────────────────────────────
+  regression:
+    runs-on: ubuntu-latest
+    needs: smoke
+    strategy:
+      fail-fast: false
+      matrix:
+        containers: [1, 2] # Spins up 2 separate GitHub Actions runner machines.
+                           # Each runner registers with Cypress Cloud (record: true).
+                           # Cypress Cloud assigns spec files across both runners using
+                           # historical run durations — longest specs are assigned first
+                           # so both runners finish at roughly the same time (greedy
+                           # load balancing). First-ever run has no history so assignment
+                           # is arbitrary; from the second run onward it is optimized.
+    steps:
+      - uses: actions/checkout@v6
+      - name: Regression Tests
         # Uses the official Cypress GitHub action https://github.com/cypress-io/github-action
         uses: cypress-io/github-action@v7
         with:
-          # Starts web server for E2E tests - replace with your own server invocation
-          # https://docs.cypress.io/app/continuous-integration/overview#Boot-your-server
           start: npm start
-          wait-on: 'http://localhost:3000' # Waits for above
-          # Records to Cypress Cloud 
-          # https://docs.cypress.io/cloud/get-started/setup
+          wait-on: "http://localhost:3000"
+          # Records to Cypress Cloud https://docs.cypress.io/cloud/get-started/setup
           record: true
           parallel: true # Runs test in parallel using settings above
         env:
           # For recording and parallelization you must set your CYPRESS_RECORD_KEY
           # in GitHub repo → Settings → Secrets → Actions
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
-          # Create a token https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token
-          # GitHub creates it automatically for every workflow run.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─── Stage 3: Performance — k6 (after regression) ──────────────────────────
+  # Install: no local install needed — uses grafana/k6-action which pulls k6
+  # Script:  performance/load-test.js
+  performance:
+    runs-on: ubuntu-latest
+    needs: regression
+    steps:
+      - uses: actions/checkout@v6
+      - name: Start backend
+        run: npm start &
+      - name: Wait for backend
+        run: npx wait-on http://localhost:3001
+      - name: Get timestamp
+        id: timestamp
+        run: echo "value=$(date +'%Y-%m-%d_%H-%M-%S')" >> $GITHUB_OUTPUT
+      - name: Run k6 load test
+        uses: grafana/k6-action@v0.3.1
+        with:
+          filename: cypress/tests/performance/load-test.spec.ts
+          flags: --compatibility-mode=extended --out json=cypress/tests/performance/k6-results.json
+      - name: Upload k6 report
+        uses: actions/upload-artifact@v4
+        if: always()   # upload even if thresholds failed
+        with:
+          name: k6-performance-report-${{ steps.timestamp.outputs.value }}
+          path: cypress/tests/performance/k6-results.json
+
+  # ─── Stage 4: Security — OWASP ZAP (main branch only) ──────────────────────
+  # Install: no local install needed — uses zaproxy/action-baseline Docker image
+  # Runs only on main to avoid noise on every feature branch PR
+  security:
+    runs-on: ubuntu-latest
+    needs: regression
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v6
+      - name: Start app
+        run: npm start &
+      - name: Wait for app
+        run: npx wait-on http://localhost:3000
+      - name: OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: "http://localhost:3000"
+          report_html: zap-report.html
+      - name: Upload ZAP report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-security-report
+          path: zap-report.html

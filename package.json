@@ -167,6 +167,7 @@
     "test": "yarn cypress:open",
     "test:headless": "yarn cypress:run",
     "test:api": "yarn cypress:run --spec 'cypress/tests/api/*'",
+    "test:performance": "node scripts/run-performance.js",
     "test:unit": "vitest",
     "test:unit:ci": "vitest --run",
     "test:component:ci": "yarn cypress:run:component",
