@@ -579,3 +579,36 @@ Jira board
 > Jira manages work items — stories, tasks, bugs — but it has no concept of a test case or automated test result. Xray extends Jira with three issue types: Test, Test Execution, and Test Plan, and adds a REST API to import automated results directly. Test cases become first-class Jira issues, so a failing test execution automatically links back to the story it covers — no manual work.
 >
 > At my previous company we used TestRail alongside Jira. Every time a test case related to a Jira story, someone had to manually copy the Jira ticket number into TestRail and keep both tools in sync. That's error-prone and it breaks the moment someone forgets to update one side. I recommended switching to Xray because the link between a test case and its story is a native Jira relationship — it's maintained automatically, and developers see test status directly on their board without switching tools.
+>
+> I also worked with Azure DevOps Server, which lets you attach videos and screenshots directly to a test run linked to a work item. Xray supports the same thing through an `evidence` field in its import API — you base64-encode the file and include it in the test result payload. Cypress already records videos to `cypress/videos/`, so they can be attached automatically to the failing Test issue in Xray without any manual upload.
+
+**Xray evidence payload (attach Cypress video to a failed test):**
+```json
+{
+  "testExecutionKey": "SCRUM-8",
+  "tests": [
+    {
+      "testKey": "SCRUM-10",
+      "status": "FAILED",
+      "comment": "Login flow failed — see attached video",
+      "evidence": [
+        {
+          "filename": "login-spec.cy.ts.mp4",
+          "mediaType": "video/mp4",
+          "data": "<base64-encoded-video>"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Azure DevOps vs Xray for video/artifact attachment:
+
+| Feature | Azure DevOps Server | Xray (Jira) |
+|---|---|---|
+| Attach video to test run | Yes — built-in | Yes — via `evidence` field in import API |
+| Attach screenshot to test result | Yes | Yes — same `evidence` field |
+| Link test to work item | Yes — native | Yes — Test issue links to Story natively |
+| Import automated results via API | Yes — VSTest/JUnit XML | Yes — Xray JSON / JUnit / NUnit |
+| Lives inside project tool | Yes — DevOps board | Yes — Jira board |
