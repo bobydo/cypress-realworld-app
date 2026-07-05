@@ -540,3 +540,42 @@ Xray Cloud exposes a format-specific endpoint (`/api/v2/import/execution/mocha`)
 ** Attchment and report
 ![alt text](docs/Screenshot%202026-07-05%20093121.png)
 ![alt text](docs/Screenshot%202026-07-05%20093217.png)
+
+---
+
+## Q: Why do you need Xray? What does Jira do vs what does Xray do?
+
+**Jira** is a project management tool — it tracks Stories, Tasks, Bugs, and Epics. It has no built-in concept of a test case, test run, or pass/fail history.
+
+**Xray** is a test management plugin for Jira. It adds three new issue types on top of Jira:
+
+| Xray Issue Type | What it stores |
+|---|---|
+| **Test** | One test case (e.g. "Login with invalid password") |
+| **Test Execution** | One run of a suite — groups Tests with pass/fail results for that run |
+| **Test Plan** | A collection of Test Executions across sprints for trend reporting |
+
+**Why not just use Jira alone?**
+Jira has no REST API endpoint to import automated test results. You cannot POST a JUnit/Mocha JSON and have Jira automatically create pass/fail records. Xray adds that API (`POST /api/v2/import/execution`) and the data model to store it.
+
+**Why not just use a standalone tool like TestRail or Zephyr?**
+Xray lives inside Jira, so test results are linked directly to Stories and Bugs as first-class Jira issues. A failing Test Execution on SCRUM-8 shows up on the same board as the Story it covers — no context switch to a separate tool.
+
+**Technical flow:**
+```
+Cypress run
+    ↓ mochawesome JSON
+Upload-XrayResult.ps1
+    ↓ POST /api/v2/authenticate    → JWT token
+    ↓ POST /api/v2/import/execution → Xray creates/updates Test issues,
+                                       records status per Test Execution
+Jira board
+    └── SCRUM-8 (Test Execution) shows green/red matrix
+          ├── SCRUM-9  PASSED
+          └── SCRUM-10 FAILED
+```
+
+**Interview answer (30 seconds):**
+> Jira manages work items — stories, tasks, bugs — but it has no concept of a test case or automated test result. Xray extends Jira with three issue types: Test, Test Execution, and Test Plan, and adds a REST API to import automated results directly. Test cases become first-class Jira issues, so a failing test execution automatically links back to the story it covers — no manual work.
+>
+> At my previous company we used TestRail alongside Jira. Every time a test case related to a Jira story, someone had to manually copy the Jira ticket number into TestRail and keep both tools in sync. That's error-prone and it breaks the moment someone forgets to update one side. I recommended switching to Xray because the link between a test case and its story is a native Jira relationship — it's maintained automatically, and developers see test status directly on their board without switching tools.
