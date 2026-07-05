@@ -5,6 +5,7 @@ jobs:
   # ─── Stage 1: Smoke (fast check, ~5 min) ───────────────────────────────────
   smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - name: Smoke Tests
@@ -12,6 +13,7 @@ jobs:
         with:
           start: npm start
           wait-on: "http://localhost:3000"
+          wait-on-timeout: 60
           spec: "cypress/tests/ui/auth.spec.ts,cypress/tests/ui/bankaccounts.spec.ts"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -20,6 +22,7 @@ jobs:
   regression:
     runs-on: ubuntu-latest
     needs: smoke
+    timeout-minutes: 30 # minutes for the longest spec to run
     strategy:
       fail-fast: false
       matrix:
@@ -41,6 +44,7 @@ jobs:
         with:
           start: npm start
           wait-on: "http://localhost:3000"
+          wait-on-timeout: 60 # seconds to get app reponse before failing the job
           # Records to Cypress Cloud https://docs.cypress.io/cloud/get-started/setup
           record: true
           parallel: true # Runs test in parallel using settings above
@@ -61,6 +65,52 @@ jobs:
         with:
           name: cypress-report-json-container-${{ matrix.containers }}-${{ steps.timestamp.outputs.value }}
           path: cypress/logs/*.json
+      - name: Upload failure screenshots
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: cypress-screenshots-failed-container-${{ matrix.containers }}-${{ steps.timestamp.outputs.value }}
+          path: cypress/screenshots/
+      # ── Rerun: only when this container had failures ──────────────────────────
+      # Stays inside the regression job so it is not a weird always-visible peer job.
+      # Each matrix container reruns only its own failed specs with video ON.
+      - name: Find failed specs in this container
+        id: failed
+        if: failure()
+        run: |
+          SPECS=$(node -e "
+            const fs = require('fs');
+            const files = fs.readdirSync('cypress/logs').filter(f => f.endsWith('.json'));
+            const failed = new Set();
+            files.forEach(f => {
+              const data = JSON.parse(fs.readFileSync('cypress/logs/' + f, 'utf8'));
+              (data.results || []).forEach(r => {
+                const hasFail = (suites) => (suites || []).some(s =>
+                  (s.tests || []).some(t => t.fail) || hasFail(s.suites));
+                if (hasFail(r.suites || [])) failed.add(r.file);
+              });
+            });
+            console.log([...failed].join(','));
+          ")
+          echo "specs=$SPECS" >> $GITHUB_OUTPUT
+          echo "Failed specs: $SPECS"
+      - name: Rerun failed specs with video
+        if: failure() && steps.failed.outputs.specs != ''
+        uses: cypress-io/github-action@v7
+        with:
+          start: npm start
+          wait-on: "http://localhost:3000"
+          wait-on-timeout: 60 # seconds to get app reponse before failing the job
+          spec: ${{ steps.failed.outputs.specs }}
+        env:
+          CYPRESS_VIDEO: "true"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload rerun videos
+        if: failure() && steps.failed.outputs.specs != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-rerun-videos-container-${{ matrix.containers }}-${{ steps.timestamp.outputs.value }}
+          path: cypress/videos/
 
   # ─── Stage 3: Performance — k6 (after regression) ──────────────────────────
   # Install: no local install needed — uses grafana/k6-action which pulls k6
@@ -68,6 +118,7 @@ jobs:
   performance:
     runs-on: ubuntu-latest
     needs: regression
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
       - name: Start backend
@@ -95,6 +146,7 @@ jobs:
   security:
     runs-on: ubuntu-latest
     needs: regression
+    timeout-minutes: 30
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v6

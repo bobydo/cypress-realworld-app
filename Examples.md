@@ -612,3 +612,115 @@ Azure DevOps vs Xray for video/artifact attachment:
 | Link test to work item | Yes — native | Yes — Test issue links to Story natively |
 | Import automated results via API | Yes — VSTest/JUnit XML | Yes — Xray JSON / JUnit / NUnit |
 | Lives inside project tool | Yes — DevOps board | Yes — Jira board |
+
+---
+
+## Q: Why upload only failed test videos and logs — not everything?
+
+**The problem with uploading all artifacts:**
+When we first set up CI/CD to upload every test video and log to Xray/Jira, it quickly became unworkable:
+- A 111-test suite generates ~111 video files — most are passing tests nobody needs to watch
+- Storage costs grow every sprint
+- Jira issues get flooded with irrelevant attachments, making it hard to find the actual failure
+- Upload time added 3–5 minutes to every CI run even when all tests passed
+
+**The industry standard — failed tests only:**
+```
+CI run completes
+    ├── PASSED tests → JSON result imported to Xray (status only, no video)
+    └── FAILED tests → JSON result + video + log uploaded to Xray/Jira
+```
+
+**Why not videos?**
+Cypress 13+ has `video: false` by default. Enabling video recording for every CI run just to capture failures adds overhead to every passing run too — recording, compressing, and storing video for 111 tests when 110 passed is wasteful. Enterprise teams avoid this.
+
+**Use screenshots instead — zero overhead on passing tests:**
+Cypress automatically takes a screenshot of every failing test with no config needed (`screenshotOnRunFailure: true` is the default). Screenshots only exist when a test fails — no file is created for passing tests.
+
+```
+Passing test  →  no screenshot created  (zero overhead)
+Failing test  →  cypress/screenshots/spec.cy.ts/Test name (failed).png  (automatic)
+```
+
+**How to implement in CI/CD (GitHub Actions) — the correct enterprise pattern:**
+
+The rerun logic lives **inside** the regression job as conditional steps — not as a separate peer job. A separate job at the top level looks like it always runs in the GitHub Actions UI, which is confusing. Each matrix container handles its own failures independently.
+
+```yaml
+# Inside the regression job (same matrix container that detected the failure)
+
+      - name: Upload failure screenshots          # step 1 — zero overhead on pass
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: cypress-screenshots-failed-container-${{ matrix.containers }}-${{ steps.timestamp.outputs.value }}
+          path: cypress/screenshots/
+
+      - name: Find failed specs in this container # step 2 — parse JSON for failed files
+        id: failed
+        if: failure()
+        run: |
+          SPECS=$(node -e "
+            const fs = require('fs');
+            const files = fs.readdirSync('cypress/logs').filter(f => f.endsWith('.json'));
+            const failed = new Set();
+            files.forEach(f => {
+              const data = JSON.parse(fs.readFileSync('cypress/logs/' + f, 'utf8'));
+              (data.results || []).forEach(r => {
+                const hasFail = (suites) => (suites || []).some(s =>
+                  (s.tests || []).some(t => t.fail) || hasFail(s.suites));
+                if (hasFail(r.suites || [])) failed.add(r.file);
+              });
+            });
+            console.log([...failed].join(','));
+          ")
+          echo "specs=$SPECS" >> $GITHUB_OUTPUT
+
+      - name: Rerun failed specs with video       # step 3 — two gates before running
+        if: failure() && steps.failed.outputs.specs != ''
+        uses: cypress-io/github-action@v7
+        with:
+          start: npm start
+          wait-on: "http://localhost:3000"
+          spec: ${{ steps.failed.outputs.specs }}
+        env:
+          CYPRESS_VIDEO: "true"
+
+      - name: Upload rerun videos                 # step 4 — video only if rerun ran
+        if: failure() && steps.failed.outputs.specs != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-rerun-videos-container-${{ matrix.containers }}-${{ steps.timestamp.outputs.value }}
+          path: cypress/videos/
+```
+
+**Two gates before rerunning:**
+```
+Gate 1 — if: failure()
+  → skipped entirely on a green run, no overhead
+
+Gate 2 — steps.failed.outputs.specs != ''
+  → skipped if regression failed for infra reasons (npm crash, network timeout)
+    and no actual test failures exist in the JSON report
+```
+
+**Why not a separate peer job?**
+GitHub Actions has a flat job structure — all jobs appear at the same level in the UI. A separate `rerun-failures` job looks like it is always scheduled to run, even when everything passes. Embedding the rerun as steps inside the regression job keeps the workflow graph clean:
+```
+smoke → regression → performance
+                   → security
+```
+
+**What my org decided (real experience):**
+We started uploading everything. After one sprint the Jira board was unusable — every test execution had hundreds of attachments. We changed the pipeline to:
+1. Always upload JSON result for all tests (small, text-only)
+2. Always upload HTML report (human-readable, `if: always()`)
+3. Upload screenshots only on failure (`if: failure()`) — Cypress auto-captures, zero overhead on pass
+4. Rerun failed specs with video only when failures exist — video recorded only for the broken spec, not all 111
+
+That cut artifact storage by ~90% and made Jira issues actionable instead of noisy.
+
+**Interview answer (30 seconds):**
+> We initially uploaded every artifact for every test run — videos, logs, screenshots — all 111 tests. It became unworkable: storage grew every sprint and Jira issues were buried in irrelevant attachments. The fix was a two-stage pattern: first run has no video recording since Cypress 13 defaults to video off — if anything fails, Cypress auto-captures screenshots at zero cost. Then conditional steps inside the same CI job parse the JSON report, find which spec files actually failed, and rerun only those with video on. Two gates prevent unnecessary work: `if: failure()` skips everything on a green run, and a spec-list check skips the rerun if the job failed for infra reasons rather than test failures. That cut artifact volume by about 90%.
+
+![alt text](/doc/Screenshot%202026-07-05%20104309.png>)
