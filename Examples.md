@@ -538,5 +538,5 @@ Xray Cloud exposes a format-specific endpoint (`/api/v2/import/execution/mocha`)
 > After each CI run Cypress generates a mochawesome JSON report. Our PowerShell script authenticates with Xray Cloud using a client ID and secret to get a short-lived JWT, then converts the mochawesome output to Xray's native JSON format and POSTs it to the Xray import endpoint, associating the results with an existing Test Execution issue like SCRUM-8. Xray maps each test to a Test Case issue by summary, updates pass/fail status, and shows the full execution matrix in Jira — so the team can track quality trends sprint over sprint without leaving Jira. Failures also attach the HTML report to the relevant test case as a Jira attachment so developers can open the mochawesome report directly from the issue.
 
 ** Attchment and report
-![alt text](docs/Screenshot%202026-07-05 093121.png)
-![alt text](docs/Screenshot%202026-07-05 093217.png)
+![alt text](docs/Screenshot%202026-07-05%20093121.png)
+![alt text](docs/Screenshot%202026-07-05%20093217.png)
