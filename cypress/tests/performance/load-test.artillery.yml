@@ -1,0 +1,33 @@
+config:
+  target: "http://localhost:3001"
+  phases:
+    - duration: 10
+      arrivalRate: 5      # ramp up — 5 new users per second
+      rampTo: 20          # increase to 20 users per second over 10s
+    - duration: 30
+      arrivalRate: 20     # hold 20 users per second for 30s
+    - duration: 10
+      arrivalRate: 20
+      rampTo: 0           # ramp down
+  ensure:
+    # fail the run if thresholds are crossed (same as k6 thresholds)
+    p95: 500              # 95% of requests must complete within 500ms
+    maxErrorRate: 1       # less than 1% of requests can fail
+
+scenarios:
+  - name: "Transactions and Users"
+    flow:
+      # /testData/* is mounted before auth middleware (app.ts:73) — no token needed
+      # Original auth-required endpoints (return 401 without token):
+      #   GET /transactions
+      #   GET /users
+      - get:
+          url: "/testData/transactions"
+          expect:
+            - statusCode: 200
+      - think: 1          # wait 1 second between requests (same as k6 sleep(1))
+      - get:
+          url: "/testData/users"
+          expect:
+            - statusCode: 200
+      - think: 1

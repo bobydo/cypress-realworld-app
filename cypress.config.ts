@@ -20,6 +20,18 @@ try {
 
 export default defineConfig({
   projectId: "vm4dtu",
+  // Generates HTML + JSON reports in cypress/logs/ for every cypress run
+  reporter: "cypress-mochawesome-reporter",
+  reporterOptions: {
+    reportDir: "cypress/logs",
+    charts: true,
+    reportPageTitle: "Cypress Test Results",
+    embeddedScreenshots: true, // screenshots embedded in HTML, no separate files
+    inlineAssets: true,        // single self-contained HTML file
+    saveAllAttempts: false,    // only save last retry attempt
+    saveJson: true,            // correct option name — saves .json alongside .html for Xray upload
+    timestamp: "isoDateTime",  // appends datetime to filename e.g. index_2026-07-02T14-35-22.html
+  },
   retries: {
     runMode: 2, //reduce failures in CI due to network flakiness
   },
@@ -76,6 +88,7 @@ export default defineConfig({
     // setupNodeEvents runs in the Node process, 
     // so we can use Node modules like fs, path, etc.
     setupNodeEvents(on, config) {
+      require("cypress-mochawesome-reporter/plugin")(on); // enables screenshot embedding in HTML report
       const testDataApiEndpoint = `${config.expose.apiUrl}/testData`;
 
       const queryDatabase = ({ entity, query }, callback) => {

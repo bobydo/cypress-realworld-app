@@ -1,0 +1,6 @@
+﻿[2026-07-04 16:52:01] [INFO] Log started: D:\cypress-realworld-app\scripts\..\logs\xray-upload-2026-07-04T165201.log
+[2026-07-04 16:52:01] [INFO] Loaded environment from D:\cypress-realworld-app\scripts\..\.env.local
+[2026-07-04 16:52:01] [INFO] Validating file: cypress/logs/index.html_2026-07-02T080421-0600.html
+[2026-07-04 16:52:01] [INFO] File exists: D:\cypress-realworld-app\cypress\logs\index.html_2026-07-02T080421-0600.html
+[2026-07-04 16:52:01] [ERROR] Missing JIRA_EMAIL, JIRA_API_TOKEN, or JIRA_BASE_URL in .env.local
+[2026-07-04 16:52:01] [ERROR] Upload FAILED. See log: D:\cypress-realworld-app\scripts\..\logs\xray-upload-2026-07-04T165201.log

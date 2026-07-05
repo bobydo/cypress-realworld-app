@@ -5,7 +5,10 @@
 
 # testing
 /coverage
+cypress/logs/
 cypress/tests/performance/k6-results*.json
+cypress/tests/performance/artillery-results*.json
+cypress/tests/security/zap-report*.html
 
 # production
 /build

@@ -32,6 +32,9 @@ jobs:
                            # is arbitrary; from the second run onward it is optimized.
     steps:
       - uses: actions/checkout@v6
+      - name: Get timestamp
+        id: timestamp
+        run: echo "value=$(date +'%Y-%m-%d_%H-%M-%S')" >> $GITHUB_OUTPUT
       - name: Regression Tests
         # Uses the official Cypress GitHub action https://github.com/cypress-io/github-action
         uses: cypress-io/github-action@v7
@@ -46,6 +49,18 @@ jobs:
           # in GitHub repo → Settings → Secrets → Actions
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cypress-report-html-container-${{ matrix.containers }}-${{ steps.timestamp.outputs.value }}
+          path: cypress/logs/*.html
+      - name: Upload JSON report (Xray import)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cypress-report-json-container-${{ matrix.containers }}-${{ steps.timestamp.outputs.value }}
+          path: cypress/logs/*.json
 
   # ─── Stage 3: Performance — k6 (after regression) ──────────────────────────
   # Install: no local install needed — uses grafana/k6-action which pulls k6
@@ -83,6 +98,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v6
+      - name: Get timestamp
+        id: timestamp
+        run: echo "value=$(date +'%Y-%m-%d_%H-%M-%S')" >> $GITHUB_OUTPUT
       - name: Start app
         run: npm start &
       - name: Wait for app
@@ -91,10 +109,10 @@ jobs:
         uses: zaproxy/action-baseline@v0.12.0
         with:
           target: "http://localhost:3000"
-          report_html: zap-report.html
+          report_html: cypress/tests/security/zap-report.html
       - name: Upload ZAP report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: zap-security-report
-          path: zap-report.html
+          name: zap-security-report-${{ steps.timestamp.outputs.value }}
+          path: cypress/tests/security/zap-report.html

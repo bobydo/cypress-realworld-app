@@ -1,5 +1,6 @@
 // @ts-check
 import "@cypress/code-coverage/support";
+import "cypress-mochawesome-reporter/register"; // registers reporter hooks for HTML/JSON output
 import "./commands";
 import { isMobile } from "./utils";
 

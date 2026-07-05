@@ -1,0 +1,13 @@
+﻿[2026-07-04 16:48:54] [INFO] Log started: D:\cypress-realworld-app\scripts\..\logs\xray-upload-2026-07-04T164854.log
+[2026-07-04 16:48:54] [INFO] Loaded environment from D:\cypress-realworld-app\scripts\..\.env.local
+[2026-07-04 16:48:54] [INFO] Validating file: cypress/logs/index.html_2026-07-02T080421-0600.json
+[2026-07-04 16:48:54] [INFO] File exists: D:\cypress-realworld-app\cypress\logs\index.html_2026-07-02T080421-0600.json
+[2026-07-04 16:48:54] [INFO] Authenticating with Xray Cloud...
+[2026-07-04 16:48:55] [INFO] Authentication successful. Token: eyJhbGci...
+[2026-07-04 16:48:55] [INFO] Parsing mochawesome report...
+[2026-07-04 16:48:55] [INFO] Converted 111 tests (project: SCRUM)
+[2026-07-04 16:48:55] [INFO] Associating with existing Test Execution: SCRUM-8
+[2026-07-04 16:48:55] [INFO] Uploading to https://xray.cloud.getxray.app/api/v2/import/execution ...
+[2026-07-04 16:49:54] [INFO] HTTP status : 200
+[2026-07-04 16:49:54] [INFO] Raw response: {"id":"10039","key":"SCRUM-8","self":"https://baoshenyi.atlassian.net/rest/api/2/issue/10039"}
+[2026-07-04 16:49:54] [SUCCESS] Upload succeeded. Test Execution: SCRUM-8
