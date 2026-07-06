@@ -41,7 +41,7 @@ export default defineConfig({
   expose: {
     apiUrl: "http://localhost:3001",
     mobileViewportWidthBreakpoint: 414,
-    coverage: false,
+    coverage: process.env.CYPRESS_COVERAGE === "true",
     codeCoverage: {
       url: "http://localhost:3001/__coverage__",
       exclude: "cypress/**/*.*",
