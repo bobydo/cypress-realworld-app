@@ -107,6 +107,14 @@ export default defineConfig({
           return data;
         },
 
+        // Read any file from disk — browsers cannot access the filesystem directly.
+        // Usage: cy.task("readFile", "data/database.json").then(content => { ... })
+        "readFile"(filePath: string) {
+          const fs = require("fs");
+          const resolved = path.resolve(__dirname, filePath);
+          return fs.readFileSync(resolved, "utf-8");
+        },
+
         // fetch test data from a database (MySQL, PostgreSQL, etc...)
         "filter:database"(queryPayload) {
           return queryDatabase(queryPayload, (data, attrs) => _.filter(data.results, attrs));

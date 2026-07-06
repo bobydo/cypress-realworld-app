@@ -1,0 +1,104 @@
+name: Cross-Browser Tests
+
+# ── Triggers ──────────────────────────────────────────────────────────────────
+# Manual: GitHub UI → Actions → Cross-Browser Tests → Run workflow
+# Schedule: every Monday 06:00 UTC (comment out if not needed)
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to test (default: main)"
+        required: false
+        default: "main"
+  schedule:
+    - cron: "0 6 * * 1"   # every Monday 06:00 UTC
+
+jobs:
+  # ─── Chrome + Firefox + Edge (ubuntu-latest, free runners) ─────────────────
+  cross-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false        # all browsers run even if one fails
+      matrix:
+        browser: [chrome, firefox, edge]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Get timestamp
+        id: timestamp
+        run: echo "value=$(date +'%Y-%m-%d_%H-%M-%S')" >> $GITHUB_OUTPUT
+
+      - name: Cross-Browser Tests (${{ matrix.browser }})
+        uses: cypress-io/github-action@v7
+        with:
+          start: npm start
+          wait-on: "http://localhost:3000"
+          wait-on-timeout: 60
+          browser: ${{ matrix.browser }}
+          # Critical-path specs only — not the full suite.
+          # Full regression runs on Chrome in cypress.yml.
+          # Cross-browser catches layout, event, and rendering differences.
+          spec: >
+            cypress/tests/ui/auth.spec.ts,
+            cypress/tests/ui/bankaccounts.spec.ts,
+            cypress/tests/ui/new-transaction.spec.ts,
+            cypress/tests/ui/transaction-feeds.spec.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload screenshots on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: cross-browser-screenshots-${{ matrix.browser }}-${{ steps.timestamp.outputs.value }}
+          path: cypress/screenshots/
+
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cross-browser-report-${{ matrix.browser }}-${{ steps.timestamp.outputs.value }}
+          path: cypress/logs/*.html
+
+  # ─── Safari / WebKit (macos-latest — costs ~10x more, opt-in only) ──────────
+  # Uncomment this job only when Safari coverage is explicitly required.
+  # macOS runners are billed at a higher rate — do not enable for routine runs.
+  #
+  # safari:
+  #   runs-on: macos-latest
+  #   timeout-minutes: 30
+  #   steps:
+  #     - uses: actions/checkout@v6
+  #
+  #     - name: Get timestamp
+  #       id: timestamp
+  #       run: echo "value=$(date +'%Y-%m-%d_%H-%M-%S')" >> $GITHUB_OUTPUT
+  #
+  #     - name: Safari / WebKit Tests
+  #       uses: cypress-io/github-action@v7
+  #       with:
+  #         start: npm start
+  #         wait-on: "http://localhost:3000"
+  #         wait-on-timeout: 60
+  #         browser: webkit
+  #         spec: >
+  #           cypress/tests/ui/auth.spec.ts,
+  #           cypress/tests/ui/bankaccounts.spec.ts
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #
+  #     - name: Upload screenshots on failure
+  #       uses: actions/upload-artifact@v4
+  #       if: failure()
+  #       with:
+  #         name: safari-screenshots-${{ steps.timestamp.outputs.value }}
+  #         path: cypress/screenshots/
+  #
+  #     - name: Upload HTML report
+  #       uses: actions/upload-artifact@v4
+  #       if: always()
+  #       with:
+  #         name: safari-report-${{ steps.timestamp.outputs.value }}
+  #         path: cypress/logs/*.html
