@@ -7,7 +7,7 @@
 //   2. find:database  — query the seeded database
 //   3. readFile       — read a file from disk (impossible in the browser)
 
-import { cyreal } from "../../support";
+import { seed, findDatabase, filterDatabase, readFile } from "../../support/tasks";
 
 // axios.post("/testData/seed")   → ← TRIGGER — real HTTP request leaves Node
 // backend receives POST /seed
@@ -18,27 +18,27 @@ describe("Custom Tasks — cy.task() demo", () => {
     // Node process calls axios.post("http://localhost:3001/testData/seed")
     // Backend copies database-seed.json → database.json
     // Browser receives HTTP 200 and continues
-    cyreal.seed().then((result) => {
+    seed().then((result) => {
       expect(result).to.exist;
     });
   });
 
   it("find:database queries the seeded database from the browser", () => {
-    cyreal.seed();
+    seed();
 
     // Browser cannot read database.json directly — cy.task bridges to Node
     // Node calls axios.get("/testData/users") → lodash _.find → returns first match
-    cyreal.findDatabase("users").then((user: any) => {
+    findDatabase("users").then((user: any) => {
       expect(user).to.have.property("id");
       expect(user).to.have.property("username");
     });
   });
 
   it("filter:database returns all records matching a query", () => {
-    cyreal.seed();
+    seed();
 
     // Returns all users — same Node bridge, lodash _.filter instead of _.find
-    cyreal.filterDatabase("users").then((users: any[]) => {
+    filterDatabase("users").then((users: any[]) => {
       expect(users).to.be.an("array");
       expect(users.length).to.be.greaterThan(0);
     });
@@ -48,7 +48,7 @@ describe("Custom Tasks — cy.task() demo", () => {
     // Browser calls cy.task("readFile", "data/database-seed.json")
     // Node process calls fs.readFileSync(path) and returns the raw string
     // Browser receives the content and can parse it
-    cyreal.readFile("data/database-seed.json").then((content: string) => {
+    readFile("data/database-seed.json").then((content: string) => {
       const db = JSON.parse(content);
       expect(db).to.have.property("users");
       expect(db.users).to.be.an("array");

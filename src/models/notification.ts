@@ -20,6 +20,8 @@ export interface NotificationBase {
   modifiedAt: Date;
 }
 
+// Creates a partial update model using only the id and isRead properties.
+// Defines an update payload where id and isRead are both optional.
 export type NotificationUpdatePayload = Partial<Pick<NotificationBase, "id" | "isRead">>;
 
 export interface PaymentNotification extends NotificationBase {

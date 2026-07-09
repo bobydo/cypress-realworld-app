@@ -34,3 +34,65 @@ files together) → 8 (data-driven pattern) → 7 (responsive testing) → 6 (mo
 save for last). Roughly 15-20 min each including rereading `commands.ts` for unfamiliar
 custom commands — fits a 2-3 hour block comfortably.
 
+## commands.ts — custom Cypress commands
+
+Key commands with one-line description each, from [cypress/support/commands.ts](cypress/support/commands.ts):
+
+- `cy.getBySel(selector)` — query by `data-test` attribute
+- `cy.loginByApi(username)` — bypass UI, POST /login directly
+- `cy.loginByXstate(username)` — login via XState machine (fastest)
+- `cy.database("find"|"filter", entity, query)` — query seeded DB
+- `cy.createTransaction(payload)` — create transaction via API
+
+## utils.ts + assertions.ts — helpers and assertion guards
+
+[cypress/support/utils.ts](cypress/support/utils.ts):
+
+- `generateUser()` — faker `{ firstName, lastName, username, password, email }`
+- `formatDate(date)` — Date → `"YYYY-MM-DD"`
+- `getFakeAmount()` — random int from faker.finance.amount()
+- `isMobile()` — viewport width < mobileViewportWidthBreakpoint
+
+[cypress/support/assertions.ts](cypress/support/assertions.ts):
+
+- `isNonEmptyString(value)` — typeof string && trim > 0
+- `isPositiveAmount(value)` — typeof number && > 0
+- `isValidDate(value)` — typeof string && !isNaN(Date.parse)
+- `isSenderOrReceiver(userId)` — checks senderId/receiverId on Transaction
+
+## tasks.ts — Node bridge (cy.task)
+
+From [cypress/support/tasks.ts](cypress/support/tasks.ts):
+
+- `seed()` → `cy.task("db:seed")` → POST /testData/seed → resets database.json
+- `findDatabase(entity, query?)` → first matching record
+- `filterDatabase(entity, query?)` → all matching records
+- `readFile(filePath)` → fs.readFileSync (browser has no filesystem access)
+
+Demo: [cypress/tests/demo/custom-tasks.spec.ts](cypress/tests/demo/custom-tasks.spec.ts) — 4 tests exercising all 4 tasks
+
+## interceptors.ts — network monitor and stub
+
+Show the two patterns with inline comments, from [cypress/support/interceptors.ts](cypress/support/interceptors.ts):
+
+```ts
+// MONITOR — no 3rd arg → real request goes through, alias for cy.wait
+cy.intercept("POST", "/login").as("loginUser");
+cy.wait("@loginUser").then(i => expect(i.response.statusCode).to.eq(200));
+
+// STUB — 3rd arg → fake response returned, backend never called
+cy.intercept("GET", "/transactions*", { statusCode: 200, body: { results: [] } }).as("empty");
+cy.wait("@empty");
+```
+
+Rule: declare BEFORE the action that triggers the request.
+
+Grouped helpers in interceptors.ts:
+
+- `interceptLogin()` — aliases @loginUser, @getUserProfile
+- `interceptTransactions()` — aliases @getTransactions, @createTransaction, @updateTransaction
+- `interceptBankAccounts()` — aliases @getBankAccounts, @createBankAccount, @deleteBankAccount
+- `interceptNotifications()` — aliases @getNotifications, @updateNotification
+
+Demo: [cypress/tests/demo/interceptors.spec.ts](cypress/tests/demo/interceptors.spec.ts) — 2 monitor + 3 stub tests
+

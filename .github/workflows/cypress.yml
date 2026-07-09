@@ -1,11 +1,16 @@
 name: Cypress Tests
 on: [push]
 
+# on:
+#   schedule:
+#     - cron: "0 2 * * *"
+# Run on a schedule (e.g., every day at 2:00 UTC).
+
 jobs:
   # ─── Stage 1: Smoke (fast check, ~5 min) ───────────────────────────────────
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 10 # job timeout minutes
     steps:
       - uses: actions/checkout@v6
       - name: Smoke Tests
@@ -13,7 +18,7 @@ jobs:
         with:
           start: npm start
           wait-on: "http://localhost:3000"
-          wait-on-timeout: 60
+          wait-on-timeout: 60 # seconds to get app reponse before failing the job
           spec: "cypress/tests/ui/auth.spec.ts,cypress/tests/ui/bankaccounts.spec.ts"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

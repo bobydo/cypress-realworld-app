@@ -207,6 +207,20 @@ yarn cypress:open
 | component | [src/(next to component)](./src)         |
 | unit      | [`src/__tests__`](./src/__tests__)       |
 
+### Test Commands
+
+```shell
+yarn cypress:open              # open Cypress UI (interactive)
+yarn cypress:run               # run all e2e specs headlessly
+yarn cypress:run:component     # run component tests
+yarn cypress:run:mobile        # run e2e specs at mobile viewport (375x667)
+yarn test:api                  # run only cypress/tests/api specs
+yarn test:unit                 # run unit tests (vitest, watch mode)
+yarn test:unit:ci              # run unit tests once (vitest --run)
+yarn test:performance          # run k6 performance/load tests
+yarn test:security             # run OWASP ZAP security scan
+```
+
 ## Database
 
 - The local JSON database is located in [data/database.json](./data/database.json) and is managed with [lowdb].
