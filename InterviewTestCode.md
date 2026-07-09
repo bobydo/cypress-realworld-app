@@ -96,3 +96,33 @@ Grouped helpers in interceptors.ts:
 
 Demo: [cypress/tests/demo/interceptors.spec.ts](cypress/tests/demo/interceptors.spec.ts) — 2 monitor + 3 stub tests
 
+## Troubleshooting: "why does my Auth0 spec never actually run?"
+
+**Symptom:** [auth0.spec.ts](cypress/tests/ui-auth-providers/auth0.spec.ts) always logs `auth0_configured = false`
+and the real `describe("Auth0", ...)` block with the login/onboard/logout test never executes —
+only the `else` debug branch does.
+
+**Root cause:** [cypress.config.ts:164](cypress.config.ts#L164) sets
+`config.expose.auth0_configured = Boolean(config.env.auth0_username)`. That flag is only `true`
+when `CYPRESS_auth0_username` (and password) are set in the environment. With no credentials
+configured, `auth0.spec.ts` — and the same pattern in `okta.spec.ts`, `cognito.spec.ts`,
+`google.spec.ts` — silently falls through to the debug-log branch instead of failing loudly.
+
+**Why it's built this way:** third-party SSO providers need real, provisioned test accounts.
+Gating on `_configured` lets the suite run everywhere (CI without secrets, a laptop with no
+`.env`) without every SSO spec erroring out for missing credentials — the tradeoff is that a
+misconfigured environment looks like a passing skip, not a failure.
+
+**Interview answer (30 seconds):**
+> When I first initialized this automation framework, a lot of the test environments weren't
+> ready yet — for example, the Keycloak authentication server and the test login users hadn't
+> been provisioned. Instead of hard-coding assumptions or letting those specs error out, I put
+> the provider domain and test username behind environment variables in `.env.local`, and gated
+> each SSO spec on whether those variables were set. Until the environment was ready, the spec
+> safely fell through to a config-debug branch instead of failing the build. Once the environment
+> team provisioned Keycloak and the test users, I just flipped those variables in `.env.local` and
+> the same spec started exercising the real authentication and authorization flow end-to-end — no
+> test code changes needed. The tradeoff is that a "green" run can be silently skipping SSO
+> coverage if someone forgets those variables are still unset, so I'd flag that explicitly rather
+> than let it look like a normal pass.
+

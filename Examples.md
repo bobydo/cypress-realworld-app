@@ -724,3 +724,29 @@ That cut artifact storage by ~90% and made Jira issues actionable instead of noi
 > We initially uploaded every artifact for every test run — videos, logs, screenshots — all 111 tests. It became unworkable: storage grew every sprint and Jira issues were buried in irrelevant attachments. The fix was a two-stage pattern: first run has no video recording since Cypress 13 defaults to video off — if anything fails, Cypress auto-captures screenshots at zero cost. Then conditional steps inside the same CI job parse the JSON report, find which spec files actually failed, and rerun only those with video on. Two gates prevent unnecessary work: `if: failure()` skips everything on a green run, and a spec-list check skips the rerun if the job failed for infra reasons rather than test failures. That cut artifact volume by about 90%.
 
 ![alt text](/doc/Screenshot%202026-07-05%20104309.png>)
+
+## Q: Why does `global.d.ts` declare custom commands separately from `commands.ts`?
+
+**The two halves of a custom command:**
+```ts
+// cypress/support/commands.ts — RUNTIME implementation
+Cypress.Commands.add("getBySel", (selector, ...args) => {
+  return cy.get(`[data-test=${selector}]`, ...args);
+});
+```
+```ts
+// cypress/global.d.ts — COMPILE-TIME type declaration
+declare namespace Cypress {
+  interface Chainable {
+    getBySel(dataTestAttribute: string, args?: any): Chainable<JQuery<HTMLElement>>;
+  }
+}
+```
+
+`Cypress.Commands.add()` registers the command with the test runner at runtime — that's enough
+for the command to actually work. But TypeScript has no way to know that call added a method to
+`cy`, so without the matching entry in `Chainable` in `global.d.ts`, `cy.getBySel(...)` type-checks
+as an error and gets no autocomplete, even though it runs fine.
+
+**Interview experience:**
+> When I first created a custom Cypress command with `Cypress.Commands.add()`, the command worked at runtime, but VS Code reported `Property 'sample' does not exist on type 'Chainable'`. I learned that with TypeScript, I also need to extend the `Cypress.Chainable` interface in `global.d.ts`. After adding the declaration, IntelliSense, autocomplete, and compile-time type checking all worked correctly.

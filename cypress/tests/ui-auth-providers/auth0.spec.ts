@@ -48,4 +48,11 @@ if (Cypress.expose("auth0_configured")) {
       cy.contains("Get Started").should("be.visible");
     });
   });
+} else {
+  describe("Auth0 Config Debug", () => {
+  it("prints auth0 configuration", () => {
+    cy.log(`auth0_configured = ${Cypress.expose("auth0_configured")}`);
+    cy.log(`auth0_domain = ${Cypress.expose("auth0_domain")}`);
+  });
+});
 }
