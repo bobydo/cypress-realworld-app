@@ -34,3 +34,95 @@ files together) → 8 (data-driven pattern) → 7 (responsive testing) → 6 (mo
 save for last). Roughly 15-20 min each including rereading `commands.ts` for unfamiliar
 custom commands — fits a 2-3 hour block comfortably.
 
+## commands.ts — custom Cypress commands
+
+Key commands with one-line description each, from [cypress/support/commands.ts](cypress/support/commands.ts):
+
+- `cy.getBySel(selector)` — query by `data-test` attribute
+- `cy.loginByApi(username)` — bypass UI, POST /login directly
+- `cy.loginByXstate(username)` — login via XState machine (fastest)
+- `cy.database("find"|"filter", entity, query)` — query seeded DB
+- `cy.createTransaction(payload)` — create transaction via API
+
+## utils.ts + assertions.ts — helpers and assertion guards
+
+[cypress/support/utils.ts](cypress/support/utils.ts):
+
+- `generateUser()` — faker `{ firstName, lastName, username, password, email }`
+- `formatDate(date)` — Date → `"YYYY-MM-DD"`
+- `getFakeAmount()` — random int from faker.finance.amount()
+- `isMobile()` — viewport width < mobileViewportWidthBreakpoint
+
+[cypress/support/assertions.ts](cypress/support/assertions.ts):
+
+- `isNonEmptyString(value)` — typeof string && trim > 0
+- `isPositiveAmount(value)` — typeof number && > 0
+- `isValidDate(value)` — typeof string && !isNaN(Date.parse)
+- `isSenderOrReceiver(userId)` — checks senderId/receiverId on Transaction
+
+## tasks.ts — Node bridge (cy.task)
+
+From [cypress/support/tasks.ts](cypress/support/tasks.ts):
+
+- `seed()` → `cy.task("db:seed")` → POST /testData/seed → resets database.json
+- `findDatabase(entity, query?)` → first matching record
+- `filterDatabase(entity, query?)` → all matching records
+- `readFile(filePath)` → fs.readFileSync (browser has no filesystem access)
+
+Demo: [cypress/tests/demo/custom-tasks.spec.ts](cypress/tests/demo/custom-tasks.spec.ts) — 4 tests exercising all 4 tasks
+
+## interceptors.ts — network monitor and stub
+
+Show the two patterns with inline comments, from [cypress/support/interceptors.ts](cypress/support/interceptors.ts):
+
+```ts
+// MONITOR — no 3rd arg → real request goes through, alias for cy.wait
+cy.intercept("POST", "/login").as("loginUser");
+cy.wait("@loginUser").then(i => expect(i.response.statusCode).to.eq(200));
+
+// STUB — 3rd arg → fake response returned, backend never called
+cy.intercept("GET", "/transactions*", { statusCode: 200, body: { results: [] } }).as("empty");
+cy.wait("@empty");
+```
+
+Rule: declare BEFORE the action that triggers the request.
+
+Grouped helpers in interceptors.ts:
+
+- `interceptLogin()` — aliases @loginUser, @getUserProfile
+- `interceptTransactions()` — aliases @getTransactions, @createTransaction, @updateTransaction
+- `interceptBankAccounts()` — aliases @getBankAccounts, @createBankAccount, @deleteBankAccount
+- `interceptNotifications()` — aliases @getNotifications, @updateNotification
+
+Demo: [cypress/tests/demo/interceptors.spec.ts](cypress/tests/demo/interceptors.spec.ts) — 2 monitor + 3 stub tests
+
+## Troubleshooting: "why does my Auth0 spec never actually run?"
+
+**Symptom:** [auth0.spec.ts](cypress/tests/ui-auth-providers/auth0.spec.ts) always logs `auth0_configured = false`
+and the real `describe("Auth0", ...)` block with the login/onboard/logout test never executes —
+only the `else` debug branch does.
+
+**Root cause:** [cypress.config.ts:164](cypress.config.ts#L164) sets
+`config.expose.auth0_configured = Boolean(config.env.auth0_username)`. That flag is only `true`
+when `CYPRESS_auth0_username` (and password) are set in the environment. With no credentials
+configured, `auth0.spec.ts` — and the same pattern in `okta.spec.ts`, `cognito.spec.ts`,
+`google.spec.ts` — silently falls through to the debug-log branch instead of failing loudly.
+
+**Why it's built this way:** third-party SSO providers need real, provisioned test accounts.
+Gating on `_configured` lets the suite run everywhere (CI without secrets, a laptop with no
+`.env`) without every SSO spec erroring out for missing credentials — the tradeoff is that a
+misconfigured environment looks like a passing skip, not a failure.
+
+**Interview answer (30 seconds):**
+> When I first initialized this automation framework, a lot of the test environments weren't
+> ready yet — for example, the Keycloak authentication server and the test login users hadn't
+> been provisioned. Instead of hard-coding assumptions or letting those specs error out, I put
+> the provider domain and test username behind environment variables in `.env.local`, and gated
+> each SSO spec on whether those variables were set. Until the environment was ready, the spec
+> safely fell through to a config-debug branch instead of failing the build. Once the environment
+> team provisioned Keycloak and the test users, I just flipped those variables in `.env.local` and
+> the same spec started exercising the real authentication and authorization flow end-to-end — no
+> test code changes needed. The tradeoff is that a "green" run can be silently skipping SSO
+> coverage if someone forgets those variables are still unset, so I'd flag that explicitly rather
+> than let it look like a normal pass.
+

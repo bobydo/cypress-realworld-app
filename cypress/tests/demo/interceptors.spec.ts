@@ -8,7 +8,7 @@
 //             return fake data instead — no real HTTP call made
 //             useful for testing error states, loading states, edge cases
 
-import { cyreal } from "../../support";
+import { interceptLogin } from "../../support/interceptors";
 
 describe("Interceptors — monitor and stub demo", () => {
 
@@ -34,11 +34,11 @@ describe("Interceptors — monitor and stub demo", () => {
       });
     });
 
-    it("uses cyreal interceptors to monitor login and profile load together", () => {
+    it("uses interceptLogin() to monitor login and profile load together", () => {
       cy.task("db:seed");
 
-      // cyreal.interceptLogin() registers both /login and /checkAuth aliases at once
-      cyreal.interceptLogin();
+      // interceptLogin() registers both /login and /checkAuth aliases at once
+      interceptLogin();
 
       cy.visit("/signin");
       cy.getBySel("signin-username").type("Katharina_Bernier");
@@ -56,7 +56,7 @@ describe("Interceptors — monitor and stub demo", () => {
 
     it("stubs GET /transactions to return an empty list — tests the empty state UI", () => {
       cy.task("db:seed");
-      cyreal.loginByApi("Katharina_Bernier");
+      cy.loginByApi("Katharina_Bernier");
 
       // Intercept BEFORE visiting — stub returns fake body, backend never receives the request
       cy.intercept("GET", "/transactions*", {
@@ -89,7 +89,7 @@ describe("Interceptors — monitor and stub demo", () => {
 
     it("stubs GET /transactions to return a 500 — tests the error state UI", () => {
       cy.task("db:seed");
-      cyreal.loginByApi("Katharina_Bernier");
+      cy.loginByApi("Katharina_Bernier");
 
       cy.intercept("GET", "/transactions*", {
         statusCode: 500,

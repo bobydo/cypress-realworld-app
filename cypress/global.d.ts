@@ -1,4 +1,5 @@
 /// <reference types="cypress" />
+/// global.d.ts is mainly for type checking and IntelliSense, not for runtime.
 
 declare namespace Cypress {
   import { authService } from "../src/machines/authMachine";

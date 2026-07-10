@@ -15,5 +15,3 @@ export const generateUser = () => ({
   password:  faker.internet.password({ length: 12 }),
   email:     faker.internet.email(),
 });
-
-export const cyreal = { isMobile, getFakeAmount, formatDate, generateUser };

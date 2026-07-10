@@ -12,11 +12,11 @@ import "@percy/cypress";
 import "./auth-provider-commands/auth0";
 import "./auth-provider-commands/okta";
 
-// custom command to make taking snapshots with full name
-// formed from the test title + suffix easier
-// cy.visualSnapshot() // default full test title
-// cy.visualSnapshot('clicked') // full test title + ' - clicked'
-// also sets the width and height to the current viewport
+// A custom command is often called a wrapper because 
+// it wraps several Cypress commands into one reusable command.
+
+// Cypress.Commands.add is a built-in Cypress API
+// Register a new command that becomes part of the cy object.
 Cypress.Commands.add("visualSnapshot", (maybeName) => {
   // @ts-ignore
   let snapshotTitle = cy.state("runnable").fullTitle();
@@ -404,21 +404,3 @@ Cypress.Commands.add("loginByGoogleApi", () => {
     }
   );
 });
-
-// cyreal namespace — wraps all custom cy commands as plain callable functions.
-// Custom commands remain accessible as cy.xxx (Cypress convention).
-// cyreal.xxx provides the same commands importable as a typed object.
-export const cyreal = {
-  getBySel:                  (selector: string, ...args: any[]) => cy.getBySel(selector, ...args),
-  getBySelLike:              (selector: string, ...args: any[]) => cy.getBySelLike(selector, ...args),
-  login:                     (username: string, password: string, opts?: { rememberUser?: boolean }) => cy.login(username, password, opts as any),
-  loginByApi:                (username: string, password?: string) => cy.loginByApi(username, password),
-  loginByXstate:             (username: string, password?: string) => cy.loginByXstate(username, password),
-  logoutByXstate:            () => cy.logoutByXstate(),
-  switchUserByXstate:        (username: string) => cy.switchUserByXstate(username),
-  database:                  (op: "find" | "filter", entity: string, query?: object) => cy.database(op as any, entity, query),
-  createTransaction:         (payload: any) => cy.createTransaction(payload),
-  setTransactionAmountRange: (min: number, max: number) => cy.setTransactionAmountRange(min, max),
-  visualSnapshot:            (name?: string) => cy.visualSnapshot(name),
-  nextTransactionFeedPage:   (service: string, page: number) => cy.nextTransactionFeedPage(service, page),
-};
